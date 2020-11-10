@@ -1,0 +1,30 @@
+#!/bin/bash
+SECONDS=0
+DURATION=480
+export DEPTH_LIMIT=13
+export RESULT="initial"
+
+CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+while [ $DURATION -gt 0 ]
+do
+  source timeout $DURATION . $CURRENT_DIR/jr-sv-compStep "$@"
+  if [ $? -eq 124 ]; then
+    RESULT="SAFE"
+    break
+  fi
+
+  #source $CURRENT_DIR/jr-sv-compStep "$@"
+  DURATION=$DURATION-$SECONDS
+  SECONDS=0
+  DEPTH_LIMIT=$DEPTH_LIMIT*2+7
+  if [ $RESULT = "UNSAFE" ] || [ $RESULT = "UNKNOWN"] || [ $RESULT = "SAFE"]; then
+    break
+  fi
+done
+
+if [ $RESULT = "UNSAFE" ] || [ $RESULT = "UNKNOWN"] || [ $RESULT = "SAFE"]; then
+  echo $RESULT
+else #case of SAFE_DEPTH_REACHED
+  echo "SAFE"
+fi
