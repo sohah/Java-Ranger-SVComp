@@ -1,11 +1,4 @@
 #!/bin/bash
-SECONDS=0
-DURATION=480
-export DEPTH_LIMIT=13
-export RESULT="initial"
-
-#CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)"
-itr=0
 
 # derived from the jpf-sv-comp script used by SPF in SV-COMP 2019
 
@@ -25,26 +18,26 @@ TOOL_BINARY=jpf-core/bin/jpf
 FIND_OPTIONS="-name '*.java'"
 
 while [ -n "$1" ] ; do
-case "$1" in
-  --32|--64) BIT_WIDTH="${1##--}" ; shift 1 ;;
-  --propertyfile) PROP_FILE="$2" ; shift 2 ;;
-  --graphml-witness) WITNESS_FILE="$2" ; shift 2 ;;
-  --version) echo 5; exit 0 ;;
-  *) SRC=(`eval "find $1 $FIND_OPTIONS"`) ; BM=("${BM[@]}" "${SRC[@]}") ; shift 1 ;;
-esac
+  case "$1" in
+    --32|--64) BIT_WIDTH="${1##--}" ; shift 1 ;;
+    --propertyfile) PROP_FILE="$2" ; shift 2 ;;
+    --graphml-witness) WITNESS_FILE="$2" ; shift 2 ;;
+    --version) echo 5; exit 0 ;;
+    *) SRC=(`eval "find $1 $FIND_OPTIONS"`) ; BM=("${BM[@]}" "${SRC[@]}") ; shift 1 ;;
+  esac
 done
 
 #depth_limit=$1
 #date -r java-ranger/build/jpf-symbc.jar
 
 if [ -z "${BM[0]}" ] || [ -z "$PROP_FILE" ] ; then
-echo "Missing benchmark or property file"
-exit 1
+  echo "Missing benchmark or property file"
+  exit 1
 fi
 
 if [ ! -s "${BM[0]}" ] || [ ! -s "$PROP_FILE" ] ; then
-echo "Empty benchmark or property file"
-exit 1
+  echo "Empty benchmark or property file"
+  exit 1
 fi
 
 # we ignore the property file (there is only one property at the moment)
@@ -60,108 +53,63 @@ mkdir -p $DIR/target/classes
 # build src files from benchmark
 /usr/lib/jvm/java-8-openjdk-amd64/bin/javac -g -cp `pwd`/java-ranger/build/classes:$DIR/target/classes:`pwd`/java-ranger/lib/JSAP-2.1.jar:`pwd`/java-ranger/lib/foundry-1.0.jar -d $DIR/target/classes "${BM[@]}"
 
-while [ $DURATION -gt 0 ]
-do
-  #timeout $DURATION . $CURRENT_DIR/jr-sv-compStep "$@"
+echo "depth_limit = $DEPTH_LIMIT"
+# create configuration file
+echo "target=Main" > $DIR/config.jpf
+echo "classpath=`pwd`/java-ranger/build/classes,$DIR/target/classes" >> $DIR/config.jpf
+echo "symbolic.dp=z3bitvector" >> $DIR/config.jpf
+echo "symbolic.min_int=-10000" >> $DIR/config.jpf
+echo "symbolic.max_int=10000" >> $DIR/config.jpf
+echo "symbolic.min_double=-10000.0" >> $DIR/config.jpf
+echo "symbolic.max_double=10000.0" >> $DIR/config.jpf
+echo "symbolic.bvlength=64" >> $DIR/config.jpf
+echo "search.depth_limit=18" >> $DIR/config.jpf
+#echo "search.depth_limit=13" >> $DIR/config.jpf
+echo "symbolic.strings=false" >> $DIR/config.jpf
+echo "symbolic.string_dp=z3str" >> $DIR/config.jpf
+#echo "symbolic.string_range=/[A-Z]{0,4}/" >> $DIR/config.jpf
+#echo "symbolic.strings=yes" >> $DIR/config.jpf
+#echo "symbolic.string_dp=ABC" >> $DIR/config.jpf
+#echo "symbolic.string_dp_timeout_ms=3000" >> $DIR/config.jpf
+echo "symbolic.lazy=on" >> $DIR/config.jpf
+echo "symbolic.arrays=true" >> $DIR/config.jpf
+echo "veritestingMode = 5" >> $DIR/config.jpf
+echo "recursiveDepth= 12" >> $DIR/config.jpf
+echo "listener = .symbc.VeritestingListener" >> $DIR/config.jpf
+echo "singlePathOptimization=true" >> $DIR/config.jpf
+#echo "symbolic.optimizechoices=false" >> $DIR/config.jpf
+#echo "symbolic.fp = true" >> $DIR/config.jpf
 
 
-
-  ####begining of old script
-
-  # create configuration file
-  echo "target=Main" > $DIR/config.jpf
-  echo "classpath=`pwd`/java-ranger/build/classes,$DIR/target/classes" >> $DIR/config.jpf
-  echo "symbolic.dp=z3bitvector" >> $DIR/config.jpf
-  echo "symbolic.min_int=-10000" >> $DIR/config.jpf
-  echo "symbolic.max_int=10000" >> $DIR/config.jpf
-  echo "symbolic.min_double=-10000.0" >> $DIR/config.jpf
-  echo "symbolic.max_double=10000.0" >> $DIR/config.jpf
-  echo "symbolic.bvlength=64" >> $DIR/config.jpf
-  echo "search.depth_limit=$DEPTH_LIMIT" >> $DIR/config.jpf
-  #echo "search.depth_limit=13" >> $DIR/config.jpf
-  echo "symbolic.strings=false" >> $DIR/config.jpf
-  echo "symbolic.string_dp=z3str" >> $DIR/config.jpf
-  #echo "symbolic.string_range=/[A-Z]{0,4}/" >> $DIR/config.jpf
-  #echo "symbolic.strings=yes" >> $DIR/config.jpf
-  #echo "symbolic.string_dp=ABC" >> $DIR/config.jpf
-  #echo "symbolic.string_dp_timeout_ms=3000" >> $DIR/config.jpf
-  echo "symbolic.lazy=on" >> $DIR/config.jpf
-  echo "symbolic.arrays=true" >> $DIR/config.jpf
-  echo "veritestingMode = 5" >> $DIR/config.jpf
-  echo "recursiveDepth= 12" >> $DIR/config.jpf
-  echo "listener = .symbc.VeritestingListener" >> $DIR/config.jpf
-  echo "singlePathOptimization=true" >> $DIR/config.jpf
-  #echo "symbolic.optimizechoices=false" >> $DIR/config.jpf
-  #echo "symbolic.fp = true" >> $DIR/config.jpf
-
-
-  # run Java Ranger
-  export LD_LIBRARY_PATH=`pwd`/java-ranger/lib:$LD_LIBRARY_PATH
-  echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-  export TARGET_CLASSPATH_WALA=$DIR/target/classes/
-  echo $TARGET_CLASSPATH_WALA
-  #jpf-core/bin/jpf $DIR/config.jpf
-  if test -z "$JVM_FLAGS"; then
-    JVM_FLAGS="-Xmx1024m -ea"
-  fi
-
-  timeout $DURATION /usr/lib/jvm/java-8-openjdk-amd64/bin/java $JVM_FLAGS -Djava.library.path=/usr/local/lib -jar `pwd`/jpf-core/build/RunJPF.jar $DIR/config.jpf | tee $LOG
-
-  TIMEOUT_EXIT_CODE=$?
-  echo "time out code = $?"
-  echo "seconds  = $SECONDS"
-  # check the result
-  grep "no errors detected" $LOG > /dev/null
-  if [ $? -eq 0 ]; then
-    grep "depth limit reached" $LOG > /dev/null
-    if [ $? -eq 0 ]; then
-      echo " state = SAFE_DEPTH_REACHED"
-      RESULT="SAFE_DEPTH_REACHED"
-    else
-      echo " state = SAFE"
-      RESULT="SAFE"
-    fi
-  else
-    grep "^error.*NoUncaughtExceptionsProperty.*AssertionError" $LOG > /dev/null
-    if [ $? -eq 0 ]; then
-      echo " state = UNSAFE"
-      RESULT="UNSAFE"
-    else
-      echo " state = UNKNOWN"
-      RESULT="UNKNOWN"
-    fi
-  fi
-
-  ####end of old script
-
-  if [ $TIMEOUT_EXIT_CODE = 124  ]; then #TIMEOUT happened
-    if [ $itr -eq 0 ]; then #DEPTH_LIMIT has not changed indicating first time
-      RESULT="TIMEOUT"
-      break
-    else
-      if [ $RESULT = "UNKNOWN" ] ; then
-        RESULT="SAFE" #we timed out on subsequent iterations, but you can only be here if the result was SAFE_DEPTH_REACHED
-        break
-      else #somehow we timed out but we got an interesting result than UNKNOWN, in which case we would want to return that
-        break
-      fi
-    fi
-  fi
-
-  if [ $RESULT = "UNSAFE" ] || [ $RESULT = "UNKNOWN" ] || [ $RESULT = "SAFE" ]; then
-    break
-  fi
-
-  #source $CURRENT_DIR/jr-sv-compStep "$@"
-  DURATION=$((DURATION-SECONDS))
-  SECONDS=0
-  DEPTH_LIMIT=$((DEPTH_LIMIT*3+7))
-  itr=$((itr+1))
-done
-
-#parsing the output
-if [ $RESULT = "SAFE_DEPTH_REACHED" ] ; then
-  echo "SAFE"
-else
-  echo $RESULT
+# run Java Ranger
+export LD_LIBRARY_PATH=`pwd`/java-ranger/lib:$LD_LIBRARY_PATH
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+export TARGET_CLASSPATH_WALA=$DIR/target/classes/
+echo $TARGET_CLASSPATH_WALA
+#jpf-core/bin/jpf $DIR/config.jpf
+if test -z "$JVM_FLAGS"; then
+  JVM_FLAGS="-Xmx1024m -ea"
 fi
+/usr/lib/jvm/java-8-openjdk-amd64/bin/java $JVM_FLAGS -Djava.library.path=/usr/local/lib -jar `pwd`/jpf-core/build/RunJPF.jar $DIR/config.jpf | tee $LOG
+
+# check the result
+grep "no errors detected" $LOG > /dev/null
+if [ $? -eq 0 ]; then
+#  grep "depth limit reached" $LOG > /dev/null
+#  if [ $? -eq 0 ]; then
+#    RESULT="SAFE_DEPTH_REACHED"
+#  else
+#    RESULT="SAFE"
+#  fi
+    RESULT="SAFE"
+else
+  grep "^error.*NoUncaughtExceptionsProperty.*AssertionError" $LOG > /dev/null
+  if [ $? -eq 0 ]; then
+    RESULT="UNSAFE"
+  else
+    RESULT="UNKNOWN"
+  fi
+fi
+
+
+echo $RESULT
