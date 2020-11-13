@@ -27,6 +27,7 @@ while [ -n "$1" ] ; do
   esac
 done
 
+#depth_limit=$1
 #date -r java-ranger/build/jpf-symbc.jar
 
 if [ -z "${BM[0]}" ] || [ -z "$PROP_FILE" ] ; then
@@ -52,6 +53,7 @@ mkdir -p $DIR/target/classes
 # build src files from benchmark
 /usr/lib/jvm/java-8-openjdk-amd64/bin/javac -g -cp `pwd`/java-ranger/build/classes:$DIR/target/classes:`pwd`/java-ranger/lib/JSAP-2.1.jar:`pwd`/java-ranger/lib/foundry-1.0.jar -d $DIR/target/classes "${BM[@]}"
 
+echo "depth_limit = $DEPTH_LIMIT"
 # create configuration file
 echo "target=Main" > $DIR/config.jpf
 echo "classpath=`pwd`/java-ranger/build/classes,$DIR/target/classes" >> $DIR/config.jpf
@@ -61,7 +63,8 @@ echo "symbolic.max_int=10000" >> $DIR/config.jpf
 echo "symbolic.min_double=-10000.0" >> $DIR/config.jpf
 echo "symbolic.max_double=10000.0" >> $DIR/config.jpf
 echo "symbolic.bvlength=64" >> $DIR/config.jpf
-echo "search.depth_limit=13" >> $DIR/config.jpf
+echo "search.depth_limit=18" >> $DIR/config.jpf
+#echo "search.depth_limit=13" >> $DIR/config.jpf
 echo "symbolic.strings=false" >> $DIR/config.jpf
 echo "symbolic.string_dp=z3str" >> $DIR/config.jpf
 #echo "symbolic.string_range=/[A-Z]{0,4}/" >> $DIR/config.jpf
@@ -92,12 +95,21 @@ fi
 # check the result
 grep "no errors detected" $LOG > /dev/null
 if [ $? -eq 0 ]; then
-  echo "SAFE"
+#  grep "depth limit reached" $LOG > /dev/null
+#  if [ $? -eq 0 ]; then
+#    RESULT="SAFE_DEPTH_REACHED"
+#  else
+#    RESULT="SAFE"
+#  fi
+    RESULT="SAFE"
 else
   grep "^error.*NoUncaughtExceptionsProperty.*AssertionError" $LOG > /dev/null
   if [ $? -eq 0 ]; then
-    echo "UNSAFE"
+    RESULT="UNSAFE"
   else
-    echo "UNKNOWN"
+    RESULT="UNKNOWN"
   fi
 fi
+
+
+echo $RESULT
