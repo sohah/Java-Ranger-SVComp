@@ -89,9 +89,10 @@ do
   #echo "symbolic.string_dp=ABC" >> $DIR/config.jpf
   #echo "symbolic.string_dp_timeout_ms=3000" >> $DIR/config.jpf
   echo "symbolic.lazy=on" >> $DIR/config.jpf
-  echo "symbolic.arrays=true" >> $DIR/config.jpf
+  #echo "symbolic.arrays=true" >> $DIR/config.jpf
+  echo "symbolic.jrarrays=true" >> $DIR/config.jpf
   echo "veritestingMode = 5" >> $DIR/config.jpf
-  echo "recursiveDepth= 12" >> $DIR/config.jpf
+  echo "recursiveDepth= 200" >> $DIR/config.jpf
   echo "listener = .symbc.VeritestingListener" >> $DIR/config.jpf
   echo "singlePathOptimization=true" >> $DIR/config.jpf
   #echo "symbolic.optimizechoices=false" >> $DIR/config.jpf
