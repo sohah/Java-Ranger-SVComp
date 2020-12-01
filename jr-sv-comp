@@ -139,7 +139,7 @@ do
   ####end of old script
 
   if [ $TIMEOUT_EXIT_CODE -gt 0  ]; then #TIMEOUT happened
-    echo "inside the timeout if-stmt"
+    #echo "inside the timeout if-stmt"
     if [ $itr -eq 0 ]; then #DEPTH_LIMIT has not changed indicating first time
       RESULT="TIMEOUT"
       break
@@ -154,7 +154,7 @@ do
   fi
 
   if [ $RESULT = "UNSAFE" ] || [ $RESULT = "UNKNOWN" ] || [ $RESULT = "SAFE" ]; then
-    echo "inside break if statement"
+    #echo "inside break if statement"
     break
   fi
 
