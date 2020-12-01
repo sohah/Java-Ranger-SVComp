@@ -75,8 +75,8 @@ do
   echo "target=Main" > $DIR/config.jpf
   echo "classpath=`pwd`/java-ranger/build/classes,$DIR/target/classes" >> $DIR/config.jpf
   echo "symbolic.dp=z3bitvector" >> $DIR/config.jpf
-  echo "symbolic.min_int=-10000" >> $DIR/config.jpf
-  echo "symbolic.max_int=10000" >> $DIR/config.jpf
+  echo "symbolic.min_int=-2147483648" >> $DIR/config.jpf
+  echo "symbolic.max_int=2147483647" >> $DIR/config.jpf
   echo "symbolic.min_double=-10000.0" >> $DIR/config.jpf
   echo "symbolic.max_double=10000.0" >> $DIR/config.jpf
   echo "symbolic.bvlength=64" >> $DIR/config.jpf
@@ -109,29 +109,29 @@ do
     JVM_FLAGS="-Xmx1024m -ea"
   fi
 
-  ulimit -t $DURATION ;  /usr/lib/jvm/java-8-openjdk-amd64/bin/java $JVM_FLAGS -Djava.library.path=/usr/local/lib -jar `pwd`/jpf-core/build/RunJPF.jar $DIR/config.jpf | tee $LOG
+  ulimit -t $DURATION ;  /usr/lib/jvm/java-8-openjdk-amd64/bin/java $JVM_FLAGS -Djava.library.path=/usr/local/lib -jar `pwd`/jpf-core/build/RunJPF.jar $DIR/config.jpf > $LOG
 
   TIMEOUT_EXIT_CODE=$?
-  echo "time out code = $?"
+  echo "time out code = $TIMEOUT_EXIT_CODE"
   echo "seconds  = $SECONDS"
   # check the result
   grep "no errors detected" $LOG > /dev/null
   if [ $? -eq 0 ]; then
     grep "depth limit reached" $LOG > /dev/null
     if [ $? -eq 0 ]; then
-      echo " state = SAFE_DEPTH_REACHED"
+      echo " state1 = SAFE_DEPTH_REACHED"
       RESULT="SAFE_DEPTH_REACHED"
     else
-      echo " state = SAFE"
+      echo " state2 = SAFE"
       RESULT="SAFE"
     fi
   else
     grep "^error.*NoUncaughtExceptionsProperty.*AssertionError" $LOG > /dev/null
     if [ $? -eq 0 ]; then
-      echo " state = UNSAFE"
+      echo " state3 = UNSAFE"
       RESULT="UNSAFE"
     else
-      echo " state = UNKNOWN"
+      echo " state4 = UNKNOWN"
       RESULT="UNKNOWN"
     fi
   fi
@@ -139,6 +139,7 @@ do
   ####end of old script
 
   if [ $TIMEOUT_EXIT_CODE -gt 0  ]; then #TIMEOUT happened
+    echo "inside the timeout if-stmt"
     if [ $itr -eq 0 ]; then #DEPTH_LIMIT has not changed indicating first time
       RESULT="TIMEOUT"
       break
@@ -153,6 +154,7 @@ do
   fi
 
   if [ $RESULT = "UNSAFE" ] || [ $RESULT = "UNKNOWN" ] || [ $RESULT = "SAFE" ]; then
+    echo "inside break if statement"
     break
   fi
 
